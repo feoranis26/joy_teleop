@@ -27,6 +27,7 @@ class JoyTeleopNode(Node):
         self.hold_srv = self.create_client(Empty, 'hold_heading')
 
         self.deadzone = 0.1
+
         #self.x_s, self.y_s, self.th_s = 0, 0, 0
 
     def get_joystick_axis(self, axis):
@@ -36,32 +37,32 @@ class JoyTeleopNode(Node):
         return d_value
     
     def timer_callback(self):
+        self.get_logger().info("Started!", once=True)
         pygame.event.pump()
 
         x_spd = -self.get_joystick_axis(1) * 0.05
         y_spd = -self.get_joystick_axis(0) * 0.05
-        th_spd = -self.get_joystick_axis(2) * 0.5
+        th_spd = -self.get_joystick_axis(2)**2 * 0.5
 
-        speed_increase = 1 + (self.js.get_axis(5) + 1) * 5
+        speed_increase = 1 + (self.js.get_axis(5) + 1)**3 * 10
         speed_decrease = 1 / (1 + (1 + self.js.get_axis(2)) * 2.5)
-
 
         x_spd *= speed_decrease * speed_increase
         y_spd *= speed_decrease * speed_increase
 
         if self.js.get_button(9) and not self.prev_pressed:
-            print("Holding!")
+            self.get_logger().info("Holding!")
             self.hold_srv.call_async(Empty.Request())
 
 
         if self.js.get_button(7) and not self.prev_pressed:
-            print("Toggle LiDAR!")
+            self.get_logger().info("Toggle LiDAR!")
 
             if self.power:
-                print("Stop LiDAR!")
+                self.get_logger().info("Stop LiDAR!")
                 self.stop_motor_srv.call_async(Empty.Request())
             else:
-                print("Start LiDAR!")
+                self.get_logger().info("Start LiDAR!")
                 self.start_motor_srv.call_async(Empty.Request())
 
             self.prev_pressed = True
@@ -69,7 +70,7 @@ class JoyTeleopNode(Node):
 
         self.prev_pressed = self.js.get_button(9) or self.js.get_button(7)
 
-        print(x_spd, y_spd, th_spd)
+        self.get_logger().debug(f"x: {x_spd} m/s, y: {y_spd} m/s, th: {th_spd} rad/s", throttle_duration_sec=1)
 
         msg = Twist()
 
