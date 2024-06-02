@@ -29,6 +29,24 @@ class JoyTeleopNode(Node):
         self.deadzone = 0.1
         self.last_motion = 0
 
+        self.x_axis = int(self.declare_parameter(
+          'x_axis', '1').get_parameter_value().string_value)
+        
+        self.y_axis = int(self.declare_parameter(
+          'y_axis', '0').get_parameter_value().string_value)
+        
+        self.z_axis = int(self.declare_parameter(
+          'z_axis', '2').get_parameter_value().string_value)
+        
+        self.th1_axis = int(self.declare_parameter(
+          'th_axis', '5').get_parameter_value().string_value)
+        
+        #self.th2_axis = int(self.declare_parameter(
+        #  'th_dec_axis', '2').get_parameter_value().string_value)
+        
+        self.lidar_btn = int(self.declare_parameter(
+          'lidar_btn', '7').get_parameter_value().string_value)
+
         #self.x_s, self.y_s, self.th_s = 0, 0, 0
 
     def get_joystick_axis(self, axis):
@@ -41,24 +59,22 @@ class JoyTeleopNode(Node):
         self.get_logger().info("Started!", once=True)
         pygame.event.pump()
 
-        x_spd = -self.get_joystick_axis(1) * 0.05
-        y_spd = -self.get_joystick_axis(0) * 0.05
-        th_spd = -math.copysign(self.get_joystick_axis(2)**2, self.get_joystick_axis(2)) * 0.5
+        x_spd = -self.get_joystick_axis(self.x_axis) * 0.05
+        y_spd = -self.get_joystick_axis(self.y_axis) * 0.05
+        th_spd = -math.copysign(self.get_joystick_axis(self.z_axis)**2, self.get_joystick_axis(self.z_axis)) * 0.5
 
-        speed_increase = 1 + (self.js.get_axis(5) + 1)**3 * 10
-        speed_decrease = 1 / (1 + (1 + self.js.get_axis(2)) * 2.5)
+        speed_increase = 1 + (self.js.get_axis(self.th1_axis) + 1)**3 * 10
+        #speed_decrease = 1 / (1 + (1 + self.js.get_axis(self.th2_axis)) * 2.5)
 
-        x_spd *= speed_decrease * speed_increase
-        y_spd *= speed_decrease * speed_increase
+        x_spd *= speed_increase
+        y_spd *= speed_increase
 
         if self.js.get_button(9) and not self.prev_pressed:
             self.get_logger().info("Holding!")
             self.hold_srv.call_async(Empty.Request())
 
 
-        if self.js.get_button(7) and not self.prev_pressed:
-            self.get_logger().info("Toggle LiDAR!")
-
+        if self.js.get_button(self.lidar_btn) and not self.prev_pressed:
             if self.power:
                 self.get_logger().info("Stop LiDAR!")
                 self.stop_motor_srv.call_async(Empty.Request())
@@ -69,7 +85,7 @@ class JoyTeleopNode(Node):
             self.prev_pressed = True
             self.power = not self.power
 
-        self.prev_pressed = self.js.get_button(9) or self.js.get_button(7)
+        self.prev_pressed = self.js.get_button(9) or self.js.get_button(self.lidar_btn)
 
         self.get_logger().info(f"x: {x_spd} m/s, y: {y_spd} m/s, th: {th_spd} rad/s", throttle_duration_sec=1)
 
