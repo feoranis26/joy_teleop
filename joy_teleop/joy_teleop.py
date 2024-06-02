@@ -1,4 +1,4 @@
-import time, os
+import time, os, math
 import rclpy
 import pygame
 from rclpy.node import Node
@@ -27,6 +27,7 @@ class JoyTeleopNode(Node):
         self.hold_srv = self.create_client(Empty, 'hold_heading')
 
         self.deadzone = 0.1
+        self.last_motion = 0
 
         #self.x_s, self.y_s, self.th_s = 0, 0, 0
 
@@ -42,7 +43,7 @@ class JoyTeleopNode(Node):
 
         x_spd = -self.get_joystick_axis(1) * 0.05
         y_spd = -self.get_joystick_axis(0) * 0.05
-        th_spd = -self.get_joystick_axis(2)**2 * 0.5
+        th_spd = -math.copysign(self.get_joystick_axis(2)**2, self.get_joystick_axis(2)) * 0.5
 
         speed_increase = 1 + (self.js.get_axis(5) + 1)**3 * 10
         speed_decrease = 1 / (1 + (1 + self.js.get_axis(2)) * 2.5)
@@ -70,7 +71,7 @@ class JoyTeleopNode(Node):
 
         self.prev_pressed = self.js.get_button(9) or self.js.get_button(7)
 
-        self.get_logger().debug(f"x: {x_spd} m/s, y: {y_spd} m/s, th: {th_spd} rad/s", throttle_duration_sec=1)
+        self.get_logger().info(f"x: {x_spd} m/s, y: {y_spd} m/s, th: {th_spd} rad/s", throttle_duration_sec=1)
 
         msg = Twist()
 
@@ -78,7 +79,12 @@ class JoyTeleopNode(Node):
         msg.linear.y = float(y_spd)
 
         msg.angular.z = float(th_spd)
-        self.publisher_.publish(msg)
+
+        if msg != Twist():
+            self.last_motion = time.time()
+        
+        if time.time() - self.last_motion < 2:
+            self.publisher_.publish(msg)
 
 
 def main(args=None):
