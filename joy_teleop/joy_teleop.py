@@ -4,7 +4,7 @@ import pygame
 from rclpy.node import Node
 
 from geometry_msgs.msg import Twist
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Float64
 from std_srvs.srv import Empty
 
 
@@ -12,6 +12,7 @@ class JoyTeleopNode(Node):
     def __init__(self):
         super().__init__('joy_teleop')
         self.publisher_ = self.create_publisher(Twist, '/cmd_vel', 1)
+        self.aux_pub = self.create_publisher(Float64, 'aux_step/cmd_vel', 1)
         timer_period = 0.1  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.holding_heading = False
@@ -63,6 +64,10 @@ class JoyTeleopNode(Node):
         y_spd = -self.get_joystick_axis(self.y_axis) * 0.05
         th_spd = -math.copysign(self.get_joystick_axis(self.z_axis)**2, self.get_joystick_axis(self.z_axis)) * 0.5
 
+        pov_x, pov_y = self.js.get_hat(0)
+        aux_spd = pov_y * 20000.0
+
+
         speed_increase = 1 + (self.js.get_axis(self.th1_axis) + 1)**3 * 10
         #speed_decrease = 1 / (1 + (1 + self.js.get_axis(self.th2_axis)) * 2.5)
 
@@ -88,6 +93,11 @@ class JoyTeleopNode(Node):
         self.prev_pressed = self.js.get_button(9) or self.js.get_button(self.lidar_btn)
 
         self.get_logger().info(f"x: {x_spd} m/s, y: {y_spd} m/s, th: {th_spd} rad/s", throttle_duration_sec=1)
+        self.get_logger().info(f"aux: {aux_spd}", throttle_duration_sec=1)
+
+        aux_vel = Float64()
+        aux_vel.data = aux_spd
+        self.aux_pub.publish(aux_vel)
 
         msg = Twist()
 
