@@ -62,7 +62,7 @@ class JoyTeleopNode(Node):
 
         x_spd = -self.get_joystick_axis(self.x_axis) * 0.05
         y_spd = -self.get_joystick_axis(self.y_axis) * 0.05
-        th_spd = -math.copysign(self.get_joystick_axis(self.z_axis)**2, self.get_joystick_axis(self.z_axis)) * 0.5
+        th_spd = -math.copysign(self.get_joystick_axis(self.z_axis)**2, self.get_joystick_axis(self.z_axis)) * 1.25
 
         pov_x, pov_y = self.js.get_hat(0)
         aux_spd = pov_y * 20000.0
